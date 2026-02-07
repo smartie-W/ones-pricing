@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ONES 产品价格计算器</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="page">
+    <header class="header">
+      <div class="logo" aria-label="ONES logo">
+        <img src="logo.png" alt="ONES 标志" />
+      </div>
+      <div class="title">
+        <h1>产品价格计算器</h1>
+        <p>基于 2026 价格表，按账号数与模块组合计算</p>
+      </div>
+    </header>
+
+    <section class="card">
+      <div class="form-grid">
+        <div class="field">
+          <label>部署方式</label>
+          <select id="deployment"></select>
+        </div>
+        <div class="field">
+          <label>授权方式</label>
+          <select id="license"></select>
+        </div>
+        <div class="field">
+          <label>版本</label>
+          <select id="edition"></select>
+        </div>
+        <div class="field">
+          <label>折扣（%）</label>
+          <input id="discount" type="number" min="0" max="100" step="0.1" value="100" />
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="products">
+        <h2>选择产品模块</h2>
+        <div class="product-list" id="productList"></div>
+      </div>
+
+      <div class="service" id="serviceSection">
+        <h2>服务人天</h2>
+        <div class="form-grid">
+          <div class="field">
+            <label>人天数量</label>
+            <input id="serviceDays" type="number" min="0" step="1" value="0" />
+          </div>
+          <div class="field">
+            <label>单价（元/人天）</label>
+            <input id="serviceRate" type="number" min="0" step="100" value="3000" />
+          </div>
+          <div class="field">
+            <label>服务折扣（%）</label>
+            <input id="serviceDiscount" type="number" min="0" max="100" step="0.1" value="100" />
+          </div>
+        </div>
+      </div>
+
+      <div class="note" id="rulesNote">
+        私有部署按年订阅 5 万起售，私有部署一次性授权 8 万起售。若低于起售门槛，将按门槛价计。
+      </div>
+
+      <div class="actions">
+        <button id="calcBtn" class="primary">计算价格</button>
+        <button id="resetBtn" class="ghost">重置</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="results-header">
+        <h2>计算结果</h2>
+        <div id="summary" class="summary">请先选择产品与参数</div>
+      </div>
+      <div class="table-wrap">
+        <table class="results" id="resultsTable">
+          <thead>
+            <tr>
+              <th>产品</th>
+              <th>账号数</th>
+              <th>区间</th>
+              <th>刊例价（元）</th>
+              <th>区间单账号价（元）</th>
+              <th>状态</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p>注意：若账号数超过 10,000 或价格表显示“请联系我们”，请提交评审与商务确认。</p>
+    </footer>
+  </div>
+
+  <script src="data-inline.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
