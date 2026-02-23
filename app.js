@@ -495,10 +495,21 @@ const exportImage = () => {
   drawCellText(ctx, summaryEl.textContent.trim(), padding, footerTop, width - padding * 2);
 
   const fileStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-  const link = document.createElement('a');
-  link.download = `ONES-价格计算-${fileStamp}.png`;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  const fileName = `ONES-价格计算-${fileStamp}.png`;
+  canvas.toBlob((blob) => {
+    if (!blob) {
+      window.alert('导出失败，请重试。');
+      return;
+    }
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }, 'image/png');
 };
 
 const resetForm = () => {
