@@ -75,6 +75,24 @@ const findRecord = (records, deployment, license, seats) => {
   });
 };
 
+const findStepBase = (records, deployment, license, seats, edition) => {
+  const candidates = records
+    .filter((rec) =>
+      rec.deployment === deployment &&
+      rec.license === license &&
+      Number(rec.seats) <= Number(seats)
+    )
+    .sort((a, b) => Number(b.seats) - Number(a.seats));
+
+  for (const rec of candidates) {
+    const info = rec.editions[edition];
+    if (info && info.list_price !== null && info.list_price !== undefined) {
+      return { stepSeats: Number(rec.seats), stepPrice: info.list_price };
+    }
+  }
+  return null;
+};
+
 const getOptions = (items, preferred) => {
   const uniq = Array.from(new Set(items.filter(Boolean)));
   if (preferred) {
@@ -279,7 +297,7 @@ const compute = () => {
           ? `${record.seat_range.min}+`
           : '-';
 
-      if (!edition || edition.list_price === null) {
+      if (!edition || (edition.list_price === null && edition.unit_price === null)) {
         // 特殊：公有云 Copilot 随基座赠送
         if (product === 'ONES Copilot' && state.deployment === '公有云') {
           listPrice = 0;
@@ -290,9 +308,25 @@ const compute = () => {
           hasContact = true;
         }
       } else {
-        listPrice = edition.list_price;
         unitPrice = edition.unit_price;
-        total += listPrice;
+        const stepBase = findStepBase(records, state.deployment, state.license, seats, state.edition);
+        const stepSeats = stepBase ? stepBase.stepSeats : null;
+        const stepPrice = stepBase ? stepBase.stepPrice : null;
+        const delta = stepSeats !== null ? Math.max(0, seats - stepSeats) : 0;
+
+        if (stepSeats !== null && stepPrice !== null && unitPrice !== null && unitPrice !== undefined) {
+          listPrice = stepPrice + delta * unitPrice;
+          total += listPrice;
+        } else if (stepSeats !== null && stepPrice !== null && delta === 0) {
+          listPrice = stepPrice;
+          total += listPrice;
+        } else if (unitPrice !== null && unitPrice !== undefined) {
+          listPrice = unitPrice * seats;
+          total += listPrice;
+        } else {
+          listPrice = edition.list_price;
+          total += listPrice || 0;
+        }
       }
     }
 
@@ -355,6 +389,116 @@ const compute = () => {
   }
 
   summaryEl.textContent = `小计：${formatNumber(total)} 元，折扣：${discountRate}% ，服务费：${formatNumber(serviceTotal)} 元，总计：${formatNumber(adjusted)} 元${adjustmentNote}`;
+};
+
+const drawCellText = (ctx, text, x, y, maxWidth) => {
+  const content = String(text || '-');
+  if (ctx.measureText(content).width <= maxWidth) {
+    ctx.fillText(content, x, y);
+    return;
+  }
+  let shortened = content;
+  while (shortened.length > 0 && ctx.measureText(`${shortened}...`).width > maxWidth) {
+    shortened = shortened.slice(0, -1);
+  }
+  ctx.fillText(`${shortened}...`, x, y);
+};
+
+const exportImage = () => {
+  compute();
+
+  const selectedProducts = Object.entries(state.selected)
+    .filter(([, info]) => info.enabled)
+    .map(([name, info]) => `${name}(${info.seats})`);
+  const rows = Array.from(resultsTable.querySelectorAll('tr')).map((tr) =>
+    Array.from(tr.querySelectorAll('td')).map((td) => td.textContent.trim())
+  );
+
+  if (rows.length === 0) {
+    window.alert('暂无可导出的计算结果。');
+    return;
+  }
+
+  const columns = ['产品', '账号数', '区间', '刊例价（元）', '区间单账号价（元）', '状态'];
+  const widths = [360, 120, 140, 200, 220, 260];
+  const tableWidth = widths.reduce((sum, w) => sum + w, 0);
+  const padding = 36;
+  const lineGap = 36;
+  const rowHeight = 42;
+  const tableTop = 230;
+  const footerTop = tableTop + rowHeight * (rows.length + 1) + 40;
+  const width = tableWidth + padding * 2;
+  const height = footerTop + 70;
+  const scale = 2;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(scale, scale);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, width, height);
+
+  ctx.fillStyle = '#0b2f7f';
+  ctx.font = '700 34px "Noto Serif SC", "Songti SC", serif';
+  ctx.fillText('ONES 产品价格计算快照', padding, 55);
+
+  const now = new Date();
+  const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+  ctx.font = '20px "Noto Serif SC", "Songti SC", serif';
+  ctx.fillStyle = '#1b4bb3';
+  ctx.fillText(`导出时间：${stamp}`, padding, 88);
+
+  ctx.fillText(`部署方式：${state.deployment}    授权方式：${state.license}    版本：${state.edition}`, padding, 124);
+  ctx.fillText(`产品折扣：${state.discount}%    服务人天：${state.serviceDays}    服务单价：${state.serviceRate}    服务折扣：${state.serviceDiscount}%`, padding, 156);
+
+  const selectedText = selectedProducts.length > 0 ? selectedProducts.join('，') : '无';
+  drawCellText(ctx, `已选产品：${selectedText}`, padding, 188, width - padding * 2);
+
+  ctx.strokeStyle = '#cddcff';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(padding, tableTop, tableWidth, rowHeight * (rows.length + 1));
+
+  let cursorX = padding;
+  ctx.fillStyle = '#1b4bb3';
+  ctx.font = '600 20px "Noto Serif SC", "Songti SC", serif';
+  columns.forEach((col, idx) => {
+    drawCellText(ctx, col, cursorX + 8, tableTop + 28, widths[idx] - 14);
+    cursorX += widths[idx];
+    if (idx < widths.length - 1) {
+      ctx.beginPath();
+      ctx.moveTo(cursorX, tableTop);
+      ctx.lineTo(cursorX, tableTop + rowHeight * (rows.length + 1));
+      ctx.stroke();
+    }
+  });
+
+  rows.forEach((row, rowIndex) => {
+    const y = tableTop + rowHeight * (rowIndex + 1);
+    ctx.beginPath();
+    ctx.moveTo(padding, y);
+    ctx.lineTo(padding + tableWidth, y);
+    ctx.stroke();
+
+    let cellX = padding;
+    ctx.fillStyle = '#0b2f7f';
+    ctx.font = '18px "Noto Serif SC", "Songti SC", serif';
+    row.forEach((cell, cellIdx) => {
+      drawCellText(ctx, cell, cellX + 8, y + 28, widths[cellIdx] - 14);
+      cellX += widths[cellIdx];
+    });
+  });
+
+  ctx.font = '600 22px "Noto Serif SC", "Songti SC", serif';
+  ctx.fillStyle = summaryEl.classList.contains('warning') ? '#c40000' : '#1b4bb3';
+  drawCellText(ctx, summaryEl.textContent.trim(), padding, footerTop, width - padding * 2);
+
+  const fileStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+  const link = document.createElement('a');
+  link.download = `ONES-价格计算-${fileStamp}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
 };
 
 const resetForm = () => {
@@ -453,6 +597,7 @@ const init = async () => {
 
   document.getElementById('calcBtn').addEventListener('click', compute);
   document.getElementById('resetBtn').addEventListener('click', resetForm);
+  document.getElementById('exportBtn').addEventListener('click', exportImage);
 };
 
 init();
