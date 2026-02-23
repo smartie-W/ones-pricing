@@ -440,14 +440,14 @@ const exportImage = () => {
   ctx.fillStyle = '#ffffff';
   ctx.fillRect(0, 0, width, height);
 
-  ctx.fillStyle = '#0b2f7f';
+  ctx.fillStyle = '#000000';
   ctx.font = '700 34px "Noto Serif SC", "Songti SC", serif';
   ctx.fillText('ONES 产品价格计算快照', padding, 55);
 
   const now = new Date();
   const stamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   ctx.font = '20px "Noto Serif SC", "Songti SC", serif';
-  ctx.fillStyle = '#1b4bb3';
+  ctx.fillStyle = '#000000';
   ctx.fillText(`导出时间：${stamp}`, padding, 88);
 
   ctx.fillText(`部署方式：${state.deployment}    授权方式：${state.license}    版本：${state.edition}`, padding, 124);
@@ -461,7 +461,7 @@ const exportImage = () => {
   ctx.strokeRect(padding, tableTop, tableWidth, rowHeight * (rows.length + 1));
 
   let cursorX = padding;
-  ctx.fillStyle = '#1b4bb3';
+  ctx.fillStyle = '#000000';
   ctx.font = '600 20px "Noto Serif SC", "Songti SC", serif';
   columns.forEach((col, idx) => {
     drawCellText(ctx, col, cursorX + 8, tableTop + 28, widths[idx] - 14);
@@ -482,7 +482,7 @@ const exportImage = () => {
     ctx.stroke();
 
     let cellX = padding;
-    ctx.fillStyle = '#0b2f7f';
+    ctx.fillStyle = '#000000';
     ctx.font = '18px "Noto Serif SC", "Songti SC", serif';
     row.forEach((cell, cellIdx) => {
       drawCellText(ctx, cell, cellX + 8, y + 28, widths[cellIdx] - 14);
@@ -491,7 +491,7 @@ const exportImage = () => {
   });
 
   ctx.font = '600 22px "Noto Serif SC", "Songti SC", serif';
-  ctx.fillStyle = summaryEl.classList.contains('warning') ? '#c40000' : '#1b4bb3';
+  ctx.fillStyle = summaryEl.classList.contains('warning') ? '#c40000' : '#000000';
   drawCellText(ctx, summaryEl.textContent.trim(), padding, footerTop, width - padding * 2);
 
   const fileStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
