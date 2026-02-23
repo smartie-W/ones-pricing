@@ -496,20 +496,56 @@ const exportImage = () => {
 
   const fileStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
   const fileName = `ONES-价格计算-${fileStamp}.png`;
-  canvas.toBlob((blob) => {
-    if (!blob) {
-      window.alert('导出失败，请重试。');
+
+  const openPreview = (imgUrl) => {
+    const win = window.open('', '_blank');
+    if (!win) {
+      window.alert('浏览器拦截了新窗口，请允许弹窗后重试。');
       return;
     }
-    const url = URL.createObjectURL(blob);
+    win.document.write(`
+      <!doctype html>
+      <html lang="zh-CN">
+      <head><meta charset="utf-8"><title>${fileName}</title></head>
+      <body style="margin:0;padding:16px;background:#f7f9ff;font-family:sans-serif;">
+        <p style="margin:0 0 12px;">若未自动下载，请右键图片另存为。</p>
+        <img src="${imgUrl}" alt="${fileName}" style="max-width:100%;height:auto;border:1px solid #d0dcff;">
+      </body>
+      </html>
+    `);
+    win.document.close();
+  };
+
+  const triggerDownload = (url) => {
     const link = document.createElement('a');
     link.href = url;
     link.download = fileName;
+    link.rel = 'noopener';
+    link.style.display = 'none';
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  }, 'image/png');
+  };
+
+  if (typeof canvas.toBlob === 'function') {
+    canvas.toBlob((blob) => {
+      if (!blob) {
+        const fallbackData = canvas.toDataURL('image/png');
+        openPreview(fallbackData);
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      triggerDownload(url);
+      // Safari 可能拦截 download 属性，补充预览兜底
+      setTimeout(() => openPreview(url), 300);
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+    }, 'image/png');
+    return;
+  }
+
+  const dataUrl = canvas.toDataURL('image/png');
+  triggerDownload(dataUrl);
+  setTimeout(() => openPreview(dataUrl), 300);
 };
 
 const resetForm = () => {
