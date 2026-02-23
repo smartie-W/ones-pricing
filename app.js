@@ -496,14 +496,17 @@ const exportImage = () => {
 
   const fileStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
   const fileName = `ONES-价格计算-${fileStamp}.png`;
+  let previewWin = null;
 
   const openPreview = (imgUrl) => {
-    const win = window.open('', '_blank');
-    if (!win) {
+    if (!previewWin || previewWin.closed) {
+      previewWin = window.open('', '_blank');
+    }
+    if (!previewWin) {
       window.alert('浏览器拦截了新窗口，请允许弹窗后重试。');
       return;
     }
-    win.document.write(`
+    previewWin.document.write(`
       <!doctype html>
       <html lang="zh-CN">
       <head><meta charset="utf-8"><title>${fileName}</title></head>
@@ -513,7 +516,7 @@ const exportImage = () => {
       </body>
       </html>
     `);
-    win.document.close();
+    previewWin.document.close();
   };
 
   const triggerDownload = (url) => {
@@ -527,6 +530,13 @@ const exportImage = () => {
     document.body.removeChild(link);
   };
 
+  // 先创建预览窗口，确保后续操作仍在用户手势链路中（Safari/Chrome 更稳定）
+  previewWin = window.open('', '_blank');
+  if (previewWin) {
+    previewWin.document.write('<!doctype html><html><head><meta charset="utf-8"><title>正在生成...</title></head><body style="font-family:sans-serif;padding:16px;">正在生成图片，请稍候...</body></html>');
+    previewWin.document.close();
+  }
+
   if (typeof canvas.toBlob === 'function') {
     canvas.toBlob((blob) => {
       if (!blob) {
@@ -535,17 +545,24 @@ const exportImage = () => {
         return;
       }
       const url = URL.createObjectURL(blob);
-      triggerDownload(url);
-      // Safari 可能拦截 download 属性，补充预览兜底
-      setTimeout(() => openPreview(url), 300);
+      try {
+        triggerDownload(url);
+      } catch (e) {
+        // ignore and fallback to preview below
+      }
+      openPreview(url);
       setTimeout(() => URL.revokeObjectURL(url), 3000);
     }, 'image/png');
     return;
   }
 
   const dataUrl = canvas.toDataURL('image/png');
-  triggerDownload(dataUrl);
-  setTimeout(() => openPreview(dataUrl), 300);
+  try {
+    triggerDownload(dataUrl);
+  } catch (e) {
+    // ignore and fallback to preview below
+  }
+  openPreview(dataUrl);
 };
 
 const resetForm = () => {
