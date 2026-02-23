@@ -258,6 +258,7 @@ const buildProducts = () => {
 const compute = () => {
   resultsTable.innerHTML = '';
   summaryEl.classList.remove('warning');
+  const discountRate = Math.max(0, Math.min(100, Number(state.discount) || 0));
   const selectedProducts = Object.entries(state.selected)
     .filter(([, info]) => info.enabled);
 
@@ -330,6 +331,10 @@ const compute = () => {
       }
     }
 
+    if (status !== '请联系我们' && status !== '未找到匹配区间') {
+      status = `${status}，产品折扣 ${discountRate}%`;
+    }
+
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>${product}</td>
@@ -371,7 +376,6 @@ const compute = () => {
     return;
   }
 
-  const discountRate = Math.max(0, Math.min(100, Number(state.discount) || 0));
   const discountedTotal = total * (discountRate / 100);
   const combinedTotal = discountedTotal + serviceTotal;
 
@@ -388,7 +392,7 @@ const compute = () => {
     }
   }
 
-  summaryEl.textContent = `小计：${formatNumber(total)} 元，折扣：${discountRate}% ，服务费：${formatNumber(serviceTotal)} 元，总计：${formatNumber(adjusted)} 元${adjustmentNote}`;
+  summaryEl.textContent = `小计：${formatNumber(total)} 元，服务费：${formatNumber(serviceTotal)} 元，总计：${formatNumber(adjusted)} 元${adjustmentNote}`;
 };
 
 const drawCellText = (ctx, text, x, y, maxWidth) => {
