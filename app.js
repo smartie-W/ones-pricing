@@ -45,6 +45,7 @@ const serviceDiscountInput = document.getElementById('serviceDiscount');
 const productList = document.getElementById('productList');
 const resultsTable = document.getElementById('resultsTable').querySelector('tbody');
 const summaryEl = document.getElementById('summary');
+const summaryTaxDetailEl = document.getElementById('summaryTaxDetail');
 
 const formatNumber = (value) => {
   if (value === null || value === undefined) return '-';
@@ -265,6 +266,7 @@ const compute = () => {
   const hasService = (state.serviceDays || 0) > 0;
   if (selectedProducts.length === 0 && !hasService) {
     summaryEl.textContent = '请先选择至少一个产品模块';
+    summaryTaxDetailEl.textContent = '';
     return;
   }
 
@@ -373,16 +375,22 @@ const compute = () => {
 
   if (hasContact) {
     summaryEl.textContent = '部分选项需要人工报价，请联系商务确认。';
+    summaryTaxDetailEl.textContent = '';
     return;
   }
 
   if (hasMissing) {
     summaryEl.textContent = '存在未匹配区间，请检查账号数或选择项。';
+    summaryTaxDetailEl.textContent = '';
     return;
   }
 
   const discountedTotal = total * (discountRate / 100);
   const combinedTotal = discountedTotal + serviceTotal;
+  const softwareTaxRate = state.license === '一次性授权版' ? 0.13 : 0.06;
+  const serviceTaxRate = 0.06;
+  const softwareNetTotal = discountedTotal / (1 + softwareTaxRate);
+  const serviceNetTotal = serviceTotal / (1 + serviceTaxRate);
 
   let adjusted = combinedTotal;
   let adjustmentNote = '';
@@ -397,7 +405,8 @@ const compute = () => {
     }
   }
 
-  summaryEl.textContent = `软件原价小计：${formatNumber(total)} 元，软件折后价：${formatNumber(discountedTotal)} 元，服务费：${formatNumber(serviceTotal)} 元，总计：${formatNumber(adjusted)} 元${adjustmentNote}`;
+  summaryEl.textContent = `软件折后价（含税）：${formatNumber(discountedTotal)} 元，服务费（含税）：${formatNumber(serviceTotal)} 元，总计（含税）：${formatNumber(adjusted)} 元${adjustmentNote}`;
+  summaryTaxDetailEl.textContent = `软件折后价（未税）：${formatNumber(softwareNetTotal)} 元，服务费（未税）：${formatNumber(serviceNetTotal)} 元`;
 };
 
 const drawCellText = (ctx, text, x, y, maxWidth) => {
@@ -437,7 +446,7 @@ const exportImage = () => {
   const tableTop = 230;
   const footerTop = tableTop + rowHeight * (rows.length + 1) + 40;
   const width = tableWidth + padding * 2;
-  const height = footerTop + 70;
+  const height = footerTop + 110;
   const scale = 2;
 
   const canvas = document.createElement('canvas');
@@ -502,6 +511,9 @@ const exportImage = () => {
   ctx.font = '600 22px "Noto Serif SC", "Songti SC", serif';
   ctx.fillStyle = summaryEl.classList.contains('warning') ? '#c40000' : '#000000';
   drawCellText(ctx, summaryEl.textContent.trim(), padding, footerTop, width - padding * 2);
+  ctx.font = '18px "Noto Serif SC", "Songti SC", serif';
+  ctx.fillStyle = '#000000';
+  drawCellText(ctx, summaryTaxDetailEl.textContent.trim(), padding, footerTop + 32, width - padding * 2);
 
   const fileStamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
   const fileName = `ONES-价格计算-${fileStamp}.png`;
@@ -593,6 +605,7 @@ const resetForm = () => {
   buildProducts();
   resultsTable.innerHTML = '';
   summaryEl.textContent = '请先选择产品与参数';
+  summaryTaxDetailEl.textContent = '';
 };
 
 const init = async () => {

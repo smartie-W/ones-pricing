@@ -188,6 +188,12 @@ button {
   font-weight: 600;
 }
 
+.summary-tax {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--blue-700);
+}
+
 .table-wrap {
   overflow-x: auto;
   margin-top: 16px;
