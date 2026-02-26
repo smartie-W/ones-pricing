@@ -397,7 +397,7 @@ const compute = () => {
     }
   }
 
-  summaryEl.textContent = `小计：${formatNumber(total)} 元，服务费：${formatNumber(serviceTotal)} 元，总计：${formatNumber(adjusted)} 元${adjustmentNote}`;
+  summaryEl.textContent = `软件原价小计：${formatNumber(total)} 元，软件折后价：${formatNumber(discountedTotal)} 元，服务费：${formatNumber(serviceTotal)} 元，总计：${formatNumber(adjusted)} 元${adjustmentNote}`;
 };
 
 const drawCellText = (ctx, text, x, y, maxWidth) => {
