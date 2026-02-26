@@ -405,8 +405,10 @@ const compute = () => {
     }
   }
 
-  summaryEl.textContent = `软件折后价（含税）：${formatNumber(discountedTotal)} 元，服务费（含税）：${formatNumber(serviceTotal)} 元，总计（含税）：${formatNumber(adjusted)} 元${adjustmentNote}`;
-  summaryTaxDetailEl.textContent = `软件折后价（未税）：${formatNumber(softwareNetTotal)} 元，服务费（未税）：${formatNumber(serviceNetTotal)} 元`;
+  const softwareTaxLabel = `${Math.round(softwareTaxRate * 100)}%`;
+  const serviceTaxLabel = `${Math.round(serviceTaxRate * 100)}%`;
+  summaryEl.textContent = `软件折后价（含税，税率${softwareTaxLabel}）：${formatNumber(discountedTotal)} 元，服务费（含税，税率${serviceTaxLabel}）：${formatNumber(serviceTotal)} 元，总计（含税）：${formatNumber(adjusted)} 元${adjustmentNote}`;
+  summaryTaxDetailEl.textContent = `软件折后价（未税，税率${softwareTaxLabel}）：${formatNumber(softwareNetTotal)} 元，服务费（未税，税率${serviceTaxLabel}）：${formatNumber(serviceNetTotal)} 元`;
 };
 
 const drawCellText = (ctx, text, x, y, maxWidth) => {
