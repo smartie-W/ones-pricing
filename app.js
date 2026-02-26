@@ -310,6 +310,10 @@ const compute = () => {
         }
       } else {
         unitPrice = edition.unit_price;
+        if (product === 'ONES Desk' && unitPrice !== null && unitPrice !== undefined) {
+          listPrice = unitPrice * seats;
+          total += listPrice;
+        } else {
         const stepBase = findStepBase(records, state.deployment, state.license, seats, state.edition);
         const stepSeats = stepBase ? stepBase.stepSeats : null;
         const stepPrice = stepBase ? stepBase.stepPrice : null;
@@ -327,6 +331,7 @@ const compute = () => {
         } else {
           listPrice = edition.list_price;
           total += listPrice || 0;
+        }
         }
       }
     }
