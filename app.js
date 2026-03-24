@@ -11,10 +11,14 @@ const order = {
   ]
 };
 
+const displayNameMap = {
+  'ONES Copilot': 'ONES Assistant'
+};
+
 const productMeta = {
   'ONES Project 项目管理平台': '基座产品，可单独售卖',
   'ONES Wiki 知识库管理平台': '基座产品，可单独售卖',
-  'ONES Copilot': '跟随产品，需搭配基座产品',
+  'ONES Copilot': '跟随产品，按 ONES Project 价格的 35% 计算',
   'ONES Desk': '跟随应用，需搭配 ONES Project'
 };
 
@@ -52,6 +56,8 @@ const formatNumber = (value) => {
   if (typeof value === 'string') return value;
   return new Intl.NumberFormat('zh-CN').format(value);
 };
+
+const getDisplayName = (product) => displayNameMap[product] || product;
 
 const normalizeText = (v) => String(v || '').trim();
 
@@ -210,7 +216,7 @@ const buildProducts = () => {
 
     const title = document.createElement('div');
     title.className = 'product-title';
-    title.textContent = product;
+    title.textContent = getDisplayName(product);
 
     head.appendChild(checkbox);
     head.appendChild(title);
@@ -273,6 +279,9 @@ const compute = () => {
   let total = 0;
   let hasContact = false;
   let hasMissing = false;
+  const rawProductTotals = {};
+  const rawProductUnitPrices = {};
+  const rawProductRanges = {};
 
   selectedProducts.forEach(([product, info]) => {
     const seats = info.seats || 0;
@@ -284,7 +293,28 @@ const compute = () => {
     let status = '可计算';
     let rangeText = '-';
 
-    if (!record) {
+    if (product === 'ONES Copilot') {
+      const projectState = state.selected['ONES Project 项目管理平台'];
+      const projectTotal = rawProductTotals['ONES Project 项目管理平台'];
+      const projectUnitPrice = rawProductUnitPrices['ONES Project 项目管理平台'];
+      const projectRange = rawProductRanges['ONES Project 项目管理平台'];
+
+      if (!projectState || !projectState.enabled || projectTotal === undefined) {
+        status = '需先选择 ONES Project 项目管理平台';
+        hasMissing = true;
+      } else {
+        listPrice = projectTotal * 0.35;
+        unitPrice = projectUnitPrice === null || projectUnitPrice === undefined
+          ? null
+          : projectUnitPrice * 0.35;
+        rangeText = projectRange || '-';
+        status = '按 ONES Project 价格的 35% 计算';
+        total += listPrice;
+        rawProductTotals[product] = listPrice;
+        rawProductUnitPrices[product] = unitPrice;
+        rawProductRanges[product] = rangeText;
+      }
+    } else if (!record) {
       if (seats >= 10000) {
         status = '请联系我们';
         hasContact = true;
@@ -301,15 +331,8 @@ const compute = () => {
           : '-';
 
       if (!edition || (edition.list_price === null && edition.unit_price === null)) {
-        // 特殊：公有云 Copilot 随基座赠送
-        if (product === 'ONES Copilot' && state.deployment === '公有云') {
-          listPrice = 0;
-          unitPrice = 0;
-          status = '公有云随基座赠送（含用量限制）';
-        } else {
-          status = '请联系我们';
-          hasContact = true;
-        }
+        status = '请联系我们';
+        hasContact = true;
       } else {
         unitPrice = edition.unit_price;
         if (product === 'ONES Desk' && unitPrice !== null && unitPrice !== undefined) {
@@ -335,6 +358,9 @@ const compute = () => {
           total += listPrice || 0;
         }
         }
+        rawProductTotals[product] = listPrice;
+        rawProductUnitPrices[product] = unitPrice;
+        rawProductRanges[product] = rangeText;
       }
     }
 
@@ -344,7 +370,7 @@ const compute = () => {
 
     const row = document.createElement('tr');
     row.innerHTML = `
-      <td>${product}</td>
+      <td>${getDisplayName(product)}</td>
       <td>${formatNumber(seats)}</td>
       <td>${rangeText}</td>
       <td>${listPrice === null ? '-' : formatNumber(listPrice)}</td>
@@ -429,7 +455,7 @@ const exportImage = () => {
 
   const selectedProducts = Object.entries(state.selected)
     .filter(([, info]) => info.enabled)
-    .map(([name, info]) => `${name}(${info.seats})`);
+    .map(([name, info]) => `${getDisplayName(name)}(${info.seats})`);
   const rows = Array.from(resultsTable.querySelectorAll('tr')).map((tr) =>
     Array.from(tr.querySelectorAll('td')).map((td) => td.textContent.trim())
   );
