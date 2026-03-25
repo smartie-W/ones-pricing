@@ -77,21 +77,18 @@ def compute_standard_product(data, product, deployment, license_name, edition, s
         }
 
     unit_price = to_decimal(info["unit_price"])
-    if product == "ONES Desk" and unit_price is not None:
+    step_base = find_step_base(records, deployment, license_name, seats, edition)
+    step_seats = step_base["seats"] if step_base else None
+    step_price = to_decimal(step_base["editions"][edition]["list_price"]) if step_base else None
+    delta = seats - step_seats if step_seats is not None else 0
+    if step_seats is not None and step_price is not None and unit_price is not None:
+        list_price = step_price + Decimal(delta) * unit_price
+    elif step_seats is not None and step_price is not None and delta == 0:
+        list_price = step_price
+    elif unit_price is not None:
         list_price = unit_price * Decimal(seats)
     else:
-        step_base = find_step_base(records, deployment, license_name, seats, edition)
-        step_seats = step_base["seats"] if step_base else None
-        step_price = to_decimal(step_base["editions"][edition]["list_price"]) if step_base else None
-        delta = seats - step_seats if step_seats is not None else 0
-        if step_seats is not None and step_price is not None and unit_price is not None:
-            list_price = step_price + Decimal(delta) * unit_price
-        elif step_seats is not None and step_price is not None and delta == 0:
-            list_price = step_price
-        elif unit_price is not None:
-            list_price = unit_price * Decimal(seats)
-        else:
-            list_price = to_decimal(info["list_price"])
+        list_price = to_decimal(info["list_price"])
 
     return {
         "ok": True,
@@ -238,10 +235,10 @@ def run_cases():
                 ],
             },
             "expect": {
-                "raw_total": "72687.5",
-                "discounted_software_total": "58150",
+                "raw_total": "66437.5",
+                "discounted_software_total": "53150",
                 "service_total": "2100",
-                "total": "60250",
+                "total": "55250",
             },
         },
         {
